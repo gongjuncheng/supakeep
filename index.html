@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supabase 保活面板</title>
+<style>
+:root{--bg:#0a0e1a;--card:#131829;--border:#1e293b;--accent:#3b82f6;--accent-hover:#2563eb;--danger:#ef4444;--danger-hover:#dc2626;--success:#22c55e;--text:#e2e8f0;--muted:#64748b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+.container{max-width:720px;margin:0 auto;padding:24px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.header h1{font-size:24px;font-weight:700;letter-spacing:-0.5px}
+.header .sub{font-size:12px;color:var(--muted);margin-top:2px}
+.badge{background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:20px;font-size:12px;color:var(--muted)}
+.section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px}
+.section h2{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section h3{font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--muted)}
+input{width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:#0f1629;color:var(--text);font-size:14px;margin-bottom:10px;outline:none;transition:border .2s}
+input:focus{border-color:var(--accent)}
+button{width:100%;padding:12px 16px;border-radius:10px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:8px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:var(--danger-hover)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--danger);color:var(--danger)}
+.btn-warn{background:var(--muted);color:#fff}
+.btn-warn:hover{background:#475569}
+.btn-sm{width:auto;padding:8px 16px;font-size:13px;margin-right:8px}
+.card{background:#0f1629;border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.card .name{font-weight:600;font-size:15px;margin-bottom:4px}
+.card .url{font-size:12px;color:var(--muted);word-break:break-all;margin-bottom:8px}
+.card .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:500}
+.tag-ok{background:rgba(34,197,94,.15);color:var(--success)}
+.tag-bad{background:rgba(239,68,68,.15);color:var(--danger)}
+.tag-wait{background:rgba(100,116,139,.2);color:var(--muted)}
+.tag-interval{background:rgba(59,130,246,.15);color:var(--accent)}
+.toast{position:fixed;top:20px;right:20px;padding:12px 20px;border-radius:10px;font-size:14px;z-index:999;animation:slideIn .3s ease;max-width:320px}
+.toast-success{background:var(--success);color:#000}
+.toast-error{background:var(--danger);color:#fff}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.hidden{display:none!important}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sql-block{background:#0a0e1a;border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'SF Mono',Consolas,monospace;font-size:12px;line-height:1.6;color:#a5b4fc;overflow-x:auto;white-space:pre-wrap;word-break:break-all;margin-bottom:12px}
+.step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.step-num{background:var(--accent);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px}
+.step-content{font-size:14px;line-height:1.6}
+.step-content strong{color:var(--text)}
+.danger-zone{border:1px solid rgba(239,68,68,.3);border-radius:12px;padding:16px;margin-top:16px}
+.danger-zone h3{color:var(--danger);margin-bottom:8px}
+.tutorial{background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:16px;margin-bottom:16px}
+.tutorial summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:14px}
+.copy-btn{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;margin-top:8px}
+.console-box{background:#0a0e1a;border:1px solid var(--border);border-radius:10px;padding:16px;font-family:'SF Mono',Consolas,monospace;font-size:11px;line-height:1.5;color:#a5b4fc;height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+.console-box .log-info{color:#22c55e}
+.console-box .log-warn{color:#f59e0b}
+.console-box .log-error{color:#ef4444}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.active{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:30px;width:90%;max-width:500px}
+.modal h2{margin-bottom:20px}
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- 登录页 -->
+<div id="page-auth">
+  <div class="header">
+    <div><h1>🔋 SupaKeep</h1><div class="sub">Supabase 免费项目保活面板</div></div>
+    <div class="badge" id="status-badge">离线</div>
+  </div>
+
+  <div class="section">
+    <h2>🔐 登录 / 注册</h2>
+    <input id="u" placeholder="用户名（3-20位）">
+    <input id="p" type="password" placeholder="密码（至少6位）">
+    <button class="btn-primary" onclick="login()">登录</button>
+    <button class="btn-ghost" onclick="reg()">注册新账号</button>
+  </div>
+
+  <div class="section">
+    <h2>📖 使用说明</h2>
+    <div class="step"><div class="step-num">1</div><div class="step-content"><strong>注册账号</strong> — 创建你的保活面板账号</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-content"><strong>添加项目</strong> — 填入 Supabase URL 和 anon key</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-content"><strong>建表</strong> — 在你的 Supabase 项目里执行下方 SQL</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-content"><strong>自动保活</strong> — 系统按设定频率自动 ping，记录写入你自己的 Supabase 表</div></div>
+  </div>
+
+  <div class="section">
+    <h2>🗄️ 需要在 Supabase 执行的 SQL</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:12px">在你的 Supabase 项目 → SQL Editor 里粘贴执行（可重复执行，不会破坏数据）：</p>
+    <div class="sql-block" id="sql-block">-- 1. 保活表
+CREATE TABLE IF NOT EXISTS public.keepalive (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  pinged_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 2. 保活日志表
+CREATE TABLE IF NOT EXISTS public.keepalive_logs (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  project_id text NOT NULL,
+  status int NOT NULL,
+  latency_ms int,
+  pinged_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- 3. 开启 RLS
+ALTER TABLE public.keepalive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.keepalive_logs ENABLE ROW LEVEL SECURITY;
+
+-- 4. 创建策略（已存在则跳过）
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'keepalive' AND policyname = 'allow_anon_select') THEN
+    CREATE POLICY "allow_anon_select" ON public.keepalive FOR SELECT TO anon USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'keepalive_logs' AND policyname = 'allow_anon_select_logs') THEN
+    CREATE POLICY "allow_anon_select_logs" ON public.keepalive_logs FOR SELECT TO anon USING (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'keepalive' AND policyname = 'allow_anon_insert') THEN
+    CREATE POLICY "allow_anon_insert" ON public.keepalive FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'keepalive_logs' AND policyname = 'allow_anon_insert_logs') THEN
+    CREATE POLICY "allow_anon_insert_logs" ON public.keepalive_logs FOR INSERT TO anon WITH CHECK (true);
+  END IF;
+END $$;
+
+-- 5. 插入初始记录
+INSERT INTO public.keepalive DEFAULT VALUES;</div>
+    <button class="copy-btn" onclick="copySql()">📋 复制 SQL</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px">⚠️ 此 SQL 仅包含 CREATE / ALTER / INSERT，无任何删除或修改数据的操作，可放心重复执行。</p>
+  </div>
+
+  <div class="section">
+    <h2>⚙️ 工作原理</h2>
+    <p style="font-size:13px;line-height:1.8;color:var(--muted)">
+      Supabase 免费项目长期无访问会被自动暂停。本面板通过定期向你的项目发起合法 API 请求，模拟"有人在用"，阻止休眠。<br><br>
+      每次保活会：<br>
+      ① 用你的 <strong>anon key</strong> 请求 Supabase，全程走你自己的密钥；<br>
+      ② 把结果写入<strong>你 Supabase 里的 keepalive_logs 表</strong>，你随时可查；<br>
+      ③ 控制台 <code style="background:#0f1629;padding:1px 4px;border-radius:3px">/console</code> 实时打印所有操作日志。<br>
+      <strong>数据在你自己手里，面板无法篡改。</strong>
+    </p>
+  </div>
+</div>
+
+<!-- 面板页 -->
+<div id="page-app" class="hidden">
+  <div class="header">
+    <div><h1>🔋 SupaKeep</h1><div class="sub" id="user-display"></div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a href="/console" target="_blank" class="btn-ghost btn-sm" style="text-decoration:none;display:inline-block;margin:0;width:auto;padding:8px 16px">📟 控制台</a>
+      <button class="btn-ghost btn-sm" onclick="logout()" style="margin:0;width:auto">退出</button>
+    </div>
+  </div>
+
+  <!-- 保姆教程 -->
+  <details class="tutorial">
+    <summary>📌 保姆级教程（点击展开）</summary>
+    <div style="margin-top:12px;font-size:13px;line-height:1.8;color:var(--muted)">
+      <p><strong>① 获取 Supabase URL</strong>：登录 Supabase → 选项目 → Settings → API → Project URL</p>
+      <p><strong>② 获取 anon key</strong>：同一页面 → Project API keys → anon public（新版以 <code style="background:#0f1629;padding:1px 4px;border-radius:3px">sb_</code> 开头，老版以 <code style="background:#0f1629;padding:1px 4px;border-radius:3px">eyJ</code> 开头，都行）</p>
+      <p><strong>③ 建表</strong>：在 Supabase SQL Editor 执行上方登录页的 SQL（也可点下面复制）</p>
+      <button class="copy-btn" onclick="copySql()">📋 复制完整 SQL</button>
+      <p style="margin-top:8px"><strong>④ 添加项目</strong>：填好信息点添加，保活间隔支持小数（0.01 小时起）</p>
+      <p><strong>⑤ 管理日志</strong>：卡片上有「🗑️ 清日志」按钮，一键清空该项目的保活日志</p>
+      <p><strong>⑥ 查看日志</strong>：点击右上角「📟 控制台」打开实时日志流，或去 Supabase 后台查 keepalive_logs 表</p>
+    </div>
+  </details>
+
+  <!-- 添加项目 -->
+  <div class="section">
+    <h2>➕ 添加项目</h2>
+    <input id="n" placeholder="项目名（如：我的博客）">
+    <input id="url" placeholder="Supabase URL（如：https://xxx.supabase.co）">
+    <input id="k" placeholder="anon key（以 sb_ 或 eyJ 开头）">
+    <div class="grid-2">
+      <input id="h" type="number" value="72" step="0.01" min="0.01" placeholder="保活间隔(小时)">
+    </div>
+    <button class="btn-primary" onclick="add()">添加项目</button>
+  </div>
+
+  <!-- 项目列表 -->
+  <div class="section">
+    <h2>📋 我的项目</h2>
+    <div id="list"><p style="color:var(--muted);font-size:14px">暂无项目，先添加一个吧</p></div>
+  </div>
+
+  <!-- 实时控制台预览 -->
+  <div class="section">
+    <h2>📟 实时控制台（最近日志）</h2>
+    <div class="console-box" id="consoleBox">连接中...</div>
+  </div>
+
+  <!-- 账户设置 -->
+  <div class="section">
+    <h2>⚙️ 账户设置</h2>
+    <h3>修改密码</h3>
+    <input id="new-pwd" type="password" placeholder="新密码（至少6位）">
+    <button class="btn-primary" onclick="changePwd()">更新密码</button>
+
+    <div class="danger-zone">
+      <h3>🗑️ 危险区域</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">注销账号将永久删除你的所有项目和数据，无法恢复。</p>
+      <button class="btn-danger" onclick="deleteAccount()">注销我的账号</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- 编辑项目弹窗 -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>✏️ 编辑项目</h2>
+    <input id="edit-name" placeholder="项目名">
+    <input id="edit-url" placeholder="Supabase URL">
+    <input id="edit-key" placeholder="anon key">
+    <input id="edit-hours" type="number" step="0.01" min="0.01" placeholder="保活间隔(小时)">
+    <button class="btn-primary" onclick="saveEdit()">保存修改</button>
+    <button class="btn-ghost" onclick="closeEditModal()" style="margin-top:8px">取消</button>
+  </div>
+</div>
+
+<script>
+let token = localStorage.getItem('token') || '';
+let editId = null;
+
+function toast(msg, type='success'){
+  const el=document.createElement('div');
+  el.className=`toast toast-${type}`;
+  el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+function authH(){return{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}}}
+
+fetch('/health').then(r=>r.json()).then(d=>{
+  document.getElementById('status-badge').textContent='在线';
+  document.getElementById('status-badge').style.color='var(--success)';
+}).catch(()=>{});
+
+function copySql(){
+  const sql=document.getElementById('sql-block').textContent;
+  navigator.clipboard.writeText(sql).then(()=>toast('SQL 已复制')).catch(()=>toast('复制失败','error'));
+}
+
+async function reg(){
+  const r=await fetch('/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});
+  const d=await r.json();
+  if(d.ok){toast('注册成功，请登录');p.value=''}
+  else toast(d.error,'error');
+}
+async function login(){
+  const r=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u.value,password:p.value})});
+  const d=await r.json();
+  if(d.token){token=d.token;localStorage.setItem('token',token);showApp(d.username)}
+  else toast(d.error,'error');
+}
+function logout(){localStorage.clear();token='';location.reload();}
+
+function showApp(username){
+  document.getElementById('page-auth').classList.add('hidden');
+  document.getElementById('page-app').classList.remove('hidden');
+  document.getElementById('user-display').textContent=username;
+  load();
+  connectConsole();
+}
+
+async function add(){
+  const name=n.value.trim(),url=document.getElementById('url').value.trim(),key=document.getElementById('k').value.trim(),hours=parseFloat(document.getElementById('h').value);
+  if(!name||!url||!key){toast('请填写完整信息','error');return}
+  if(isNaN(hours)||hours<0.01){toast('保活间隔至少 0.01 小时','error');return}
+  const r=await fetch('/projects',{method:'POST',...authH(),body:JSON.stringify({name,supabase_url:url,anon_key:key,interval_hours:hours})});
+  const d=await r.json();
+  if(d.ok){toast('项目添加成功');n.value='';document.getElementById('url').value='';document.getElementById('k').value='';load()}
+  else toast(d.error,'error');
+}
+
+function openEdit(id){
+  fetch('/projects',authH()).then(r=>r.json()).then(list=>{
+    const p=list.find(x=>x.id===id);
+    if(!p)return;
+    editId=id;
+    document.getElementById('edit-name').value=p.name;
+    document.getElementById('edit-url').value=p.supabase_url;
+    document.getElementById('edit-key').value=p.anon_key;
+    document.getElementById('edit-hours').value=p.interval_hours;
+    document.getElementById('editModal').classList.add('active');
+  });
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('active');editId=null;}
+
+async function saveEdit(){
+  const name=document.getElementById('edit-name').value.trim();
+  const url=document.getElementById('edit-url').value.trim();
+  const key=document.getElementById('edit-key').value.trim();
+  const hours=parseFloat(document.getElementById('edit-hours').value);
+  if(!name||!url||!key){toast('请填写完整','error');return}
+  if(isNaN(hours)||hours<0.01){toast('保活间隔至少 0.01 小时','error');return}
+  const r=await fetch('/projects/'+editId,{method:'PUT',...authH(),body:JSON.stringify({name,supabase_url:url,anon_key:key,interval_hours:hours})});
+  const d=await r.json();
+  if(d.ok){toast('项目已更新');closeEditModal();load()}
+  else toast(d.error,'error');
+}
+
+async function ping(id){const r=await fetch('/ping/'+id,{method:'POST',...authH()});const d=await r.json();if(d.ok)toast(`保活成功 (${d.latency_ms}ms)`);else toast('保活失败','error');load();}
+async function del(id){if(!confirm('确定删除这个项目？'))return;await fetch('/projects/'+id,{method:'DELETE',...authH()});toast('已删除');load();}
+
+async function clearLogs(id,name){
+  if(!confirm(`确定清空「${name}」的所有保活日志？日志将被删除，项目本身不受影响。`))return;
+  const r=await fetch('/projects/'+id+'/logs',{method:'DELETE',...authH()});
+  const d=await r.json();
+  if(d.ok){toast('保活日志已清空');load()}
+  else toast(d.error||'清空失败','error');
+}
+
+async function changePwd(){
+  const np=new_pwd.value;
+  if(!np||np.length<6){toast('密码至少6位','error');return}
+  const r=await fetch('/change-password',{method:'POST',...authH(),body:JSON.stringify({new_password:np})});
+  const d=await r.json();
+  if(d.ok){toast('密码已更新');new_pwd.value=''}
+  else toast(d.error,'error');
+}
+
+async function deleteAccount(){
+  if(!confirm('⚠️ 确定注销账号？所有项目和数据将永久删除，无法恢复！'))return;
+  if(!confirm('再次确认：真的要注销吗？此操作不可撤销！'))return;
+  const r=await fetch('/account',{method:'DELETE',...authH()});
+  const d=await r.json();
+  if(d.ok){toast('账号已注销');localStorage.clear();setTimeout(()=>location.reload(),1500)}
+  else toast(d.error,'error');
+}
+
+async function load(){
+  const r=await fetch('/projects',authH());
+  const l=await r.json();
+  const el=document.getElementById('list');
+  if(!l.length){el.innerHTML='<p style="color:var(--muted);font-size:14px">暂无项目，先添加一个吧</p>';return}
+  el.innerHTML='';
+  l.forEach(x=>{
+    const card=document.createElement('div');
+    card.className='card';
+
+    const nameDiv=document.createElement('div');
+    nameDiv.className='name';
+    nameDiv.textContent=x.name;
+    card.appendChild(nameDiv);
+
+    const urlDiv=document.createElement('div');
+    urlDiv.className='url';
+    urlDiv.textContent=x.supabase_url;
+    card.appendChild(urlDiv);
+
+    const metaDiv=document.createElement('div');
+    metaDiv.className='meta';
+
+    const s=x.last_status;
+    const tag=document.createElement('span');
+    tag.className='tag '+(s===null?'tag-wait':(s<400?'tag-ok':'tag-bad'));
+    tag.textContent=s===null?'未检测':(s<400?'✅ '+s:'❌ '+s);
+    metaDiv.appendChild(tag);
+
+    const intervalTag=document.createElement('span');
+    intervalTag.className='tag tag-interval';
+    intervalTag.textContent='每 '+x.interval_hours+'h';
+    metaDiv.appendChild(intervalTag);
+
+    const timeTag=document.createElement('span');
+    timeTag.className='tag tag-wait';
+    timeTag.textContent='上次: '+(x.last_ping_at?new Date(x.last_ping_at).toLocaleString('zh-CN'):'从未');
+    metaDiv.appendChild(timeTag);
+
+    card.appendChild(metaDiv);
+
+    const editBtn=document.createElement('button');
+    editBtn.className='btn-ghost btn-sm';
+    editBtn.textContent='✏️ 编辑';
+    editBtn.onclick=()=>openEdit(x.id);
+    card.appendChild(editBtn);
+
+    const pingBtn=document.createElement('button');
+    pingBtn.className='btn-primary btn-sm';
+    pingBtn.textContent='手动 Ping';
+    pingBtn.onclick=()=>ping(x.id);
+    card.appendChild(pingBtn);
+
+    const delBtn=document.createElement('button');
+    delBtn.className='btn-danger btn-sm';
+    delBtn.textContent='删除';
+    delBtn.onclick=()=>del(x.id);
+    card.appendChild(delBtn);
+
+    const clearBtn=document.createElement('button');
+    clearBtn.className='btn-warn btn-sm';
+    clearBtn.textContent='🗑️ 清日志';
+    clearBtn.onclick=()=>clearLogs(x.id,x.name);
+    card.appendChild(clearBtn);
+
+    el.appendChild(card);
+  });
+}
+
+function connectConsole(){
+  const box=document.getElementById('consoleBox');
+  box.textContent='';
+  const es=new EventSource('/console');
+  es.onmessage=function(e){
+    const d=JSON.parse(e.data);
+    const line=document.createElement('div');
+    line.className='log-'+d.level;
+    line.textContent=`[${d.ts}] [${d.level}] ${d.msg}`;
+    box.appendChild(line);
+    box.scrollTop=box.scrollHeight;
+  };
+  es.onerror=function(){box.appendChild(Object.assign(document.createElement('div'),{textContent:'连接断开，正在重连...',style:'color:var(--danger)'}));setTimeout(connectConsole,3000)};
+}
+
+if(token){
+  try{
+    const payload=JSON.parse(atob(token.split('.')[1]));
+    if(payload.username&&payload.exp*1000>Date.now()){showApp(payload.username)}
+    else{token='';localStorage.clear()}
+  }catch{token='';localStorage.clear()}
+}
+</script>
+</body>
+</html>
