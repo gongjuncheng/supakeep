@@ -1,0 +1,27 @@
+{
+  "name": "supakeep",
+  "version": "0.1.0",
+  "description": "自托管的 Supabase 免费项目保活面板，带 Web UI 与保活日志自证",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": [
+    "supabase",
+    "keepalive",
+    "dashboard",
+    "self-hosted",
+    "nodejs"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "lowdb": "^7.0.1"
+  }
+}
