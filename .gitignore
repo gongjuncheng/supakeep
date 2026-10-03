@@ -1,0 +1,35 @@
+# 环境变量与密钥
+.env
+.env.local
+*.key
+*.pem
+
+# 证书
+ssl/*.key
+ssl/*.crt
+ssl/*.pem
+ssl/*.p12
+ssl/*.pfx
+
+# 本地数据
+db.json
+*.db
+*.sqlite
+*.sqlite3
+
+# 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 构建产物
+dist/
+build/
+*.log
